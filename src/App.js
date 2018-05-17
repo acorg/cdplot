@@ -2,9 +2,32 @@ import React, { Component } from 'react';
 import Dropzone from 'react-dropzone';
 import './App.css';
 import Plot from 'react-plotly.js';
-import { ButtonToolbar, Button, Panel, Row, Col } from 'react-bootstrap';
+import { FormGroup, InputGroup, Glyphicon, FormControl, ButtonToolbar, Button, Panel, Row, Col } from 'react-bootstrap';
 import Interweave from 'interweave';
 import dropzoneStyles from './dropzone-styles';
+
+
+class SearchForm extends React.Component {
+  render() {
+    return (
+      <form>
+        <FormGroup>
+            <InputGroup>
+      <InputGroup.Addon>
+        <Glyphicon glyph="search"/>
+      </InputGroup.Addon>
+            <FormControl
+        type="text"
+            value={this.props.value}
+            placeholder="Subject search"
+            onChange={this.props.handleChange}
+        />
+            </InputGroup>
+        </FormGroup>
+      </form>
+    );
+  }
+}
 
 
 class ClearSelectedButton extends React.Component {
@@ -22,7 +45,6 @@ class ClearSelectedButton extends React.Component {
         return (
                 <Button
             bsStyle="primary"
-            bsSize="small"
             disabled={this.props.disabled}
             onClick={!this.props.disabled ? this.handleClick : null}
                 >
@@ -47,7 +69,6 @@ class ExportSelectedButton extends React.Component {
         return (
                 <Button
             bsStyle="primary"
-            bsSize="small"
             disabled={this.props.disabled}
             onClick={!this.props.disabled ? this.handleClick : null}
                 >
@@ -191,8 +212,12 @@ class App extends Component {
                     type: 'scatter',
                     marker: {
                         color: [],
-                        opacity: 0.4,
-                        size: 8,
+                        line: {
+                            color: 'blue',
+                            width: 10,
+                        },
+                        opacity: 0.6,
+                        size: 9,
                     },
                 }
             ],
@@ -223,6 +248,7 @@ class App extends Component {
         this.handlePlotUpdate = this.handlePlotUpdate.bind(this);
         this.handleClearSelection = this.handleClearSelection.bind(this);
         this.handleExportSelection = this.handleExportSelection.bind(this);
+        this.handleSearchChange = this.handleSearchChange.bind(this);
     }
     
     handleHover(data) {
@@ -256,7 +282,7 @@ class App extends Component {
                 data: [{
                     x: this.state.json.data[0].x,
                     y: this.state.json.data[0].y,
-                    text: this.state.json.data[0].hoverText,
+                    text: this.state.json.data[0].text,
                     type: 'scatter',
                     mode: 'markers',
                     marker: {
@@ -340,7 +366,7 @@ class App extends Component {
                 data: [{
                     x: this.state.json.data[0].x,
                     y: this.state.json.data[0].y,
-                    text: this.state.json.data[0].hoverText,
+                    text: this.state.json.data[0].text,
                     type: 'scatter',
                     mode: 'markers',
                     marker: {
@@ -365,18 +391,24 @@ class App extends Component {
         });
     }
 
+    handleSearchChange(e){
+        console.log('search box change:', e.target.value);
+    }
+
     handlePlotUpdate(figure) {
         this.setState(figure);
     }
 
     handleDataChange(data) {
         let colors = [];
+        let markerLineColors = [];
 
         this.selected = [];
         this.sampleName = data.sampleName;
         for (var i = 0; i < data.x.length; i++){
             this.selected.push(false);
             colors.push(this.unselectedColor);
+            markerLineColors.push(0);
         }
         this.queries = data.queries;
         this.matchingQueries = data.matchingQueries;
@@ -393,13 +425,21 @@ class App extends Component {
                         marker: {
                             color: colors,
                             opacity: 0.4,
-                            size: 8,
+                            size: 9,
+                            line: {
+                                colorscale: [[0, this.unselectedColor], [1, 'rgb(255,0,0)']],
+                                cmin: 0,
+                                cmax: 1,
+                                color: markerLineColors,
+                                width: 3,
+                            },
                         },
                     }
                 ],
                 layout: {
                     autosize: true,
                     displaylogo: false,
+                    hovermode: 'closest',
                     title: 'Sample ' + data.sampleName,
                     xaxis: {
                         title: 'Match length',
@@ -436,6 +476,9 @@ class App extends Component {
             </ButtonToolbar>
             </Panel.Body>
             </Panel>
+            <SearchForm
+        handleChange={this.handleSearchChange}
+        />
             </Col>
             <Col md={10} style={{height: "600px"}}>
             <PlotlyApp
