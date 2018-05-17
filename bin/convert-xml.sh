@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-tmp=/tmp/$0-$$.json
+tmp=/tmp/$(basename $0)-$$.json
 trap "rm -f $tmp" 0 1 2 3 15
 
 dbFasta=RVDB-prot-1KV-ECH-no-id-dups.fasta
@@ -34,7 +34,7 @@ do
     }
 
     convert-blast-xml-to-json.py --xml $xml > $tmp
-    dm-json-to-json.py --fasta $contigs --json $tmp --verboseLabels \
+    dm-json-to-json.py --fasta $contigs --json $tmp \
                        --sqliteDatabaseFilename $sqliteDb > $sample.json
     rm -f $tmp
 done

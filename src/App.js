@@ -181,12 +181,13 @@ class App extends Component {
         this.unselectedColor = 'green';
         this.selectedColor = 'red';
         this.selected = [];
-        this.subjects = [];
+        this.infoText = [];
         const plotJSON = {
             data: [
                 {
                     x: [],
                     y: [],
+                    text: [],
                     type: 'scatter',
                     marker: {
                         color: [],
@@ -210,7 +211,7 @@ class App extends Component {
         };
 
         this.state = {
-            text: 'No node hovered',
+            infoText: 'No node hovered',
             json: plotJSON,
             clearSelectionDisabled: true,
             exportSelectionDisabled: true,
@@ -226,14 +227,13 @@ class App extends Component {
     
     handleHover(data) {
         this.setState({
-            text: this.subjects[data.points[0].pointIndex],
+            infoText: this.infoText[data.points[0].pointIndex],
         });
     }
 
     handleClick(e) {
         e.points.forEach(point => {
             let index = point.pointNumber;
-            console.log('  point', index, point);
             this.selected[index] = ! this.selected[index];
         });
         let selectedCount = 0;
@@ -256,6 +256,7 @@ class App extends Component {
                 data: [{
                     x: this.state.json.data[0].x,
                     y: this.state.json.data[0].y,
+                    text: this.state.json.data[0].hoverText,
                     type: 'scatter',
                     mode: 'markers',
                     marker: {
@@ -277,8 +278,6 @@ class App extends Component {
     }
 
     handleExportSelection(){
-        console.log('export it....');
-
         let download = (data, filename, mime) => {
             var blob = new Blob([data], {type: mime || 'application/octet-stream'});
             if (typeof window.navigator.msSaveBlob !== 'undefined') {
@@ -341,6 +340,7 @@ class App extends Component {
                 data: [{
                     x: this.state.json.data[0].x,
                     y: this.state.json.data[0].y,
+                    text: this.state.json.data[0].hoverText,
                     type: 'scatter',
                     mode: 'markers',
                     marker: {
@@ -380,14 +380,14 @@ class App extends Component {
         }
         this.queries = data.queries;
         this.matchingQueries = data.matchingQueries;
-        this.subjects = data.text;
+        this.infoText = data.infoText;
         this.setState({
             json: {
                 data: [
                     {
                         x: data.x,
                         y: data.y,
-                        // text: data.text,
+                        text: data.hoverText,
                         type: 'scatter',
                         mode: 'markers',
                         marker: {
@@ -457,7 +457,7 @@ class App extends Component {
             <Panel.Title>Hover info</Panel.Title>
             </Panel.Heading>
             <Panel.Body>
-            <Infobox text={this.state.text}/>
+            <Infobox text={this.state.infoText}/>
             </Panel.Body>
             </Panel>
             </Col>

@@ -14,9 +14,13 @@ from dark.fastq import FastqReads
 from dark.utils import numericallySortFilenames
 
 
-def readForTitle(titles, title):
-    # Try the title and also the fields that result from splitting it
-    # on its first space.
+def subjectReadForTitle(titles, title):
+    """
+    Create a C{dark.reads.Read} instance for a subject (given its title) by
+    trying to look up variations on the title.
+    """
+    # Try the title and also the 2 fields that result from splitting it on its
+    # first space (if any).
     for t in set([title] + title.split(maxsplit=1)):
         try:
             return titles.readsAlignments.getSubjectSequence(t)
@@ -25,21 +29,22 @@ def readForTitle(titles, title):
     raise KeyError(title)
 
 
-def writeJSON(titles, sampleName, verboseLabels):
+def writeJSON(titles, sampleName):
     result = {
         'sampleName': sampleName,
         'x': [],
         'y': [],
         'matchingQueries': [],
-        'text': [],
+        'infoText': [],
+        'hoverText': [],
         'subjects': {},
         'queries': {},
     }
 
     for titleAlignments in titles.values():
-        read = readForTitle(titles, titleAlignments.subjectTitle)
-        title = read.id
-        result['subjects'][title] = read.sequence
+        subjectRead = subjectReadForTitle(titles, titleAlignments.subjectTitle)
+        title = subjectRead.id
+        result['subjects'][title] = subjectRead.sequence
 
         for titleAlignment in titleAlignments:
             result['queries'][titleAlignment.read.id] = (
@@ -55,6 +60,7 @@ def writeJSON(titles, sampleName, verboseLabels):
 
         matchingQueries = []
         matchingQueriesText = []
+
         for titleAlignment in titleAlignments:
             queryLength = len(titleAlignment.read)
             queryLengthAA = int(queryLength / 3)
@@ -71,28 +77,24 @@ def writeJSON(titles, sampleName, verboseLabels):
 
         result['matchingQueries'].append(matchingQueries)
 
-        if verboseLabels:
-            text = (
-                '<strong>Matched subject:</strong> %s<br>'
-                '<strong>Subject length:</strong> %d aa<br>'
-                '<strong>Matched region length:</strong> %d aa<br>'
-                '<strong>Number of positive aa matches in region:</strong> %d '
-                '(%.2f%%)<br>'
-                '<strong>Subject coverage (across all matching queries):'
-                '</strong> %.2f%%<br>'
-                '<strong>Queries matching subject:</strong> %d<br>' % (
-                    title,
-                    titleAlignments.subjectLength,
-                    matchLength,
-                    bestHsp.positiveCount, matchFraction * 100,
-                    titleAlignments.coverage() * 100,
-                    titleAlignments.readCount()) +
-                '<br>'.join(matchingQueriesText)
-            )
-        else:
-            text = title
+        result['infoText'].append(
+            '<strong>Matched subject:</strong> %s<br>'
+            '<strong>Subject length:</strong> %d aa<br>'
+            '<strong>Matched region length:</strong> %d aa<br>'
+            '<strong>Number of positive aa matches in region:</strong> %d '
+            '(%.2f%%)<br>'
+            '<strong>Subject coverage (across all matching queries):'
+            '</strong> %.2f%%<br>'
+            '<strong>Queries matching subject:</strong> %d<br>' % (
+                title,
+                titleAlignments.subjectLength,
+                matchLength,
+                bestHsp.positiveCount, matchFraction * 100,
+                titleAlignments.coverage() * 100,
+                titleAlignments.readCount()) +
+            '<br>'.join(matchingQueriesText))
 
-        result['text'].append(text)
+        result['hoverText'].append(title)
 
     dump(result, sys.stdout, indent=2)
 
@@ -115,11 +117,6 @@ if __name__ == '__main__':
         '--earlyExit', default=False, action='store_true',
         help=('If True, just print the number of interesting matches, but do '
               'not create the plot. Implies --printHits.'))
-
-    parser.add_argument(
-        '--verboseLabels', default=False, action='store_true',
-        help=('If True, show additional match information in the hover-over '
-              'popup for plot labels.'))
 
     parser.add_argument(
         '--printHits', default=False, action='store_true',
@@ -392,4 +389,4 @@ if __name__ == '__main__':
               file=sys.stderr)
         sys.exit(0)
 
-    writeJSON(titlesAlignments, sampleName, args.verboseLabels)
+    writeJSON(titlesAlignments, sampleName)
