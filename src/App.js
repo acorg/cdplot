@@ -199,10 +199,15 @@ class FileDrop extends React.Component {
 class App extends Component {
     constructor(props) {
         super(props);
-        this.unselectedColor = 'green';
+        this.unselectedColor = 'blue';
         this.selectedColor = 'red';
+        this.searchMatchColor = 'green';
         this.selected = [];
         this.infoText = [];
+        this.markerSize = 8;
+        this.markerOpacity = 0.7;
+        this.searchText = '';
+        this.title = 'To get started, drag a JSON file into the box on left';
         const plotJSON = {
             data: [
                 {
@@ -212,19 +217,15 @@ class App extends Component {
                     type: 'scatter',
                     marker: {
                         color: [],
-                        line: {
-                            color: 'blue',
-                            width: 10,
-                        },
-                        opacity: 0.6,
-                        size: 9,
+                        opacity: this.markerOpacity,
+                        size: this.markerSize,
                     },
                 }
             ],
             layout: {
                 autosize: true,
                 displaylogo: false,
-                title: 'To get started, drag a JSON file into the box on left',
+                title: this.title,
                 yaxis: {
                     range: [0.0, 1.0]
                 },
@@ -249,6 +250,8 @@ class App extends Component {
         this.handleClearSelection = this.handleClearSelection.bind(this);
         this.handleExportSelection = this.handleExportSelection.bind(this);
         this.handleSearchChange = this.handleSearchChange.bind(this);
+        this.nodeColors = this.nodeColors.bind(this);
+        this.nodeColor = this.nodeColor.bind(this);
     }
     
     handleHover(data) {
@@ -287,14 +290,14 @@ class App extends Component {
                     mode: 'markers',
                     marker: {
                         color: colors,
-                        opacity: 0.4,
-                        size: 8,
+                        opacity: this.markerOpacity,
+                        size: this.markerSize,
                     },
                 }],
                 layout: {
                     autosize: true,
                     displaylogo: false,
-                    title: this.sampleName,
+                    title: this.title,
                     yaxis: {
                         range: [0.0, 1.0]
                     },
@@ -371,14 +374,14 @@ class App extends Component {
                     mode: 'markers',
                     marker: {
                         color: colors,
-                        opacity: 0.4,
-                        size: 8,
+                        opacity: this.markerOpacity,
+                        size: this.markerSize,
                     },
                 }],
                 layout: {
                     autosize: true,
                     displaylogo: false,
-                    title: this.sampleName,
+                    title: this.title,
                     xaxis: {
                         title: 'Match length',
                     },
@@ -391,8 +394,61 @@ class App extends Component {
         });
     }
 
+    nodeColor(i){
+        if (this.searchText){
+            if (this.hoverText[i].toLowerCase().search(this.searchText) === -1){
+                return this.selected[i] ? this.selectedColor : this.unselectedColor;
+            }
+            else {
+                return this.searchMatchColor;
+            }
+        }
+        else {
+            return this.selected[i] ? this.selectedColor : this.unselectedColor;
+        }
+    }
+
+    nodeColors(){
+        let colors = [];
+        for (var i = 0; i < this.state.json.data[0].x.length; i++){
+            colors.push(this.nodeColor(i));
+        }
+        return colors;
+    }
+
     handleSearchChange(e){
-        console.log('search box change:', e.target.value);
+        this.searchText = e.target.value.toLowerCase();
+        if (this.searchText && this.searchText.length < 3){
+            return;
+        }
+        this.setState({
+            json: {
+                data: [{
+                    x: this.state.json.data[0].x,
+                    y: this.state.json.data[0].y,
+                    text: this.state.json.data[0].text,
+                    type: 'scatter',
+                    mode: 'markers',
+                    marker: {
+                        color: this.nodeColors(),
+                        opacity: this.markerOpacity,
+                        size: this.markerSize,
+                    },
+                }],
+                layout: {
+                    autosize: true,
+                    displaylogo: false,
+                    title: this.title,
+                    xaxis: {
+                        title: 'Match length',
+                    },
+                    yaxis: {
+                        range: [0.0, 1.0],
+                        title: 'Match identity fraction',
+                    },
+                },
+            }
+        });
     }
 
     handlePlotUpdate(figure) {
@@ -401,38 +457,35 @@ class App extends Component {
 
     handleDataChange(data) {
         let colors = [];
-        let markerLineColors = [];
 
         this.selected = [];
-        this.sampleName = data.sampleName;
+        this.title = 'Sample ' + data.sampleName;
         for (var i = 0; i < data.x.length; i++){
             this.selected.push(false);
             colors.push(this.unselectedColor);
-            markerLineColors.push(0);
         }
         this.queries = data.queries;
         this.matchingQueries = data.matchingQueries;
         this.infoText = data.infoText;
+        this.hoverText = data.hoverText;
+
+        let x = [];
+        data.x.forEach(value => x.push(value + (Math.random() * 0.8) - 0.4));
+        let y = [];
+        data.y.forEach(value => y.push(value + (Math.random() * 0.01) - 0.005));
         this.setState({
             json: {
                 data: [
                     {
-                        x: data.x,
-                        y: data.y,
+                        x: x,
+                        y: y,
                         text: data.hoverText,
                         type: 'scatter',
                         mode: 'markers',
                         marker: {
                             color: colors,
-                            opacity: 0.4,
-                            size: 9,
-                            line: {
-                                colorscale: [[0, this.unselectedColor], [1, 'rgb(255,0,0)']],
-                                cmin: 0,
-                                cmax: 1,
-                                color: markerLineColors,
-                                width: 3,
-                            },
+                            opacity: this.markerOpacity,
+                            size: this.markerSize,
                         },
                     }
                 ],
@@ -440,7 +493,7 @@ class App extends Component {
                     autosize: true,
                     displaylogo: false,
                     hovermode: 'closest',
-                    title: 'Sample ' + data.sampleName,
+                    title: this.title,
                     xaxis: {
                         title: 'Match length',
                     },
