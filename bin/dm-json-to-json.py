@@ -64,7 +64,7 @@ def writeJSON(titles, sampleName):
         for titleAlignment in titleAlignments:
             queryLength = len(titleAlignment.read)
             queryLengthAA = int(queryLength / 3)
-            unmatchedAA = queryLengthAA - matchLength
+            unmatchedAA = queryLengthAA - int(matchLength / 3)
             matchingQueries.append(titleAlignment.read.id)
             matchingQueriesText.append(
                 '<strong>Matching query:</strong> %s (length %d nt / '
